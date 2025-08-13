@@ -3,7 +3,9 @@
 #include <unistd.h>
 
 class Socket {
-    int _fd = -1;
+private:
+    std::string _ip;
+    int _port = -1, _fd = -1;
 public:
     Socket() = default; // Crea un objeto por defecto
     explicit Socket(int fd) : _fd(fd) {} // Inicializamos _fd con fd
@@ -26,6 +28,7 @@ public:
     int fd() const { return _fd; } // función para obtener el _fd del socket
     int valid() const { return _fd >= 0; } // si el fd es menor a 0, el socket es inválido
     bool bind(u_int16_t port);  // bindea el puerto con el socket
+    bool bind(const std::string& ip, u_int16_t port);
     bool listen(int backlog = 128); // backlog significa la máxima cantidad de conexiones que pueden estar en cola
     
     static Socket createTcp(); // crea un socket y lo devuelve listo para seguir siendo usado
