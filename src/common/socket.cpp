@@ -13,15 +13,15 @@ Socket Socket::createTcp() {
     return Socket(socketfd);
 }
 
-bool Socket::setNonBlocking(bool on){
+bool Socket::setNonBlocking(bool on) {
     int flags = fcntl(this->_fd, F_GETFL, 0);
     return fcntl(this->_fd, F_SETFL, flags | O_NONBLOCK) == 0;
-};
+}
 
-bool Socket::setReuseAddr(bool on){
+bool Socket::setReuseAddr(bool on) {
     int option = on ? 1 : 0;
     return ::setsockopt(this->_fd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
-};
+}
 
 bool Socket::listen(int backlog) {
     // Verificar que el socket sea válido y tenga un puerto
