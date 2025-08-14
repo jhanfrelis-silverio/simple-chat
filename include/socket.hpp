@@ -34,4 +34,7 @@ public:
     static Socket createTcp(); // crea un socket y lo devuelve listo para seguir siendo usado
     bool setNonBlocking(bool on = true); // útil para trabajar con select() ; no se bloquea esperando o enviando datos
     bool setReuseAddr(bool on = true);
+
+    bool send(std::string message);
+    std::string recv();
 };

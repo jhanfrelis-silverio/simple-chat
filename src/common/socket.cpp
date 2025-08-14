@@ -4,6 +4,7 @@
 #include<netinet/in.h>
 #include<arpa/inet.h>
 #include<fcntl.h>
+#include<cstring>
 
 Socket Socket::createTcp() {
     int socketfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -60,4 +61,24 @@ bool Socket::bind(const std::string& ip, u_int16_t port) {
     }
 
     return false;
+}
+
+bool Socket::send(std::string message) {
+    if(::send(this->_fd, message.c_str(), message.length(), 0) == -1){
+        perror("send");
+        return false;
+    };
+    return true;
+}
+
+std::string Socket::recv(){
+    char buffer[1024];
+    if(::recv(this->_fd, buffer, sizeof(buffer-1), 0) < 0){
+        perror("recv");
+        return NULL;
+    };
+
+    std::string message(buffer);
+    
+    return message;
 }
