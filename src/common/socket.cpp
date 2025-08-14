@@ -5,6 +5,7 @@
 #include<arpa/inet.h>
 #include<fcntl.h>
 #include<cstring>
+#include<tuple>
 
 Socket Socket::createTcp() {
     int socketfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -63,22 +64,33 @@ bool Socket::bind(const std::string& ip, u_int16_t port) {
     return false;
 }
 
-bool Socket::send(std::string message) {
-    if(::send(this->_fd, message.c_str(), message.length(), 0) == -1){
-        perror("send");
-        return false;
-    };
-    return true;
+bool Socket::send(Socket socket, std::string message) {
+    return ::send(socket.fd(), message.c_str(), message.length(), 0) == -1;
 }
 
-std::string Socket::recv(){
+RecvResult Socket::recv(Socket socket) {
     char buffer[1024];
-    if(::recv(this->_fd, buffer, sizeof(buffer-1), 0) < 0){
-        perror("recv");
-        return NULL;
-    };
+    RecvResult result{};
 
-    std::string message(buffer);
-    
-    return message;
+    // Almacenamos los bytes enviados
+    result.bytes = ::recv(socket.fd(), buffer, sizeof(buffer) - 1, 0);
+        
+    // Si es menor a 0, es porque hubo un error
+    if(result.bytes < 0) {
+        result.err = errno;
+        return result;
+    }
+
+    // Si el valor de bytes es 0, es porque se cerró la conexión
+    if (result.bytes == 0) {
+        return result;
+    }
+
+    // Si no se cumplieron ninguno de los criterios anteriores, guardamos el mensaje
+    result.data.assign(
+        buffer, 
+        static_cast<size_t>(result.bytes)
+    );
+
+    return result;
 }

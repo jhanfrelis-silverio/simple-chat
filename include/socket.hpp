@@ -2,6 +2,15 @@
 #include <string>
 #include <unistd.h>
 
+struct RecvResult {
+    ssize_t bytes;
+    std::string data;
+    int err = 0;
+    bool closed() const { return bytes == 0; }
+    bool ok() const { return bytes > 0; }
+    bool fail() const { return bytes < 0; }
+};
+
 class Socket {
 private:
     std::string _ip;
@@ -35,6 +44,6 @@ public:
     bool setNonBlocking(bool on = true); // útil para trabajar con select() ; no se bloquea esperando o enviando datos
     bool setReuseAddr(bool on = true);
 
-    bool send(std::string message);
-    std::string recv();
+    bool send(Socket socket, std::string message);
+    RecvResult recv(Socket socket);
 };
