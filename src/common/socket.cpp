@@ -5,7 +5,6 @@
 #include<arpa/inet.h>
 #include<fcntl.h>
 #include<cstring>
-#include<tuple>
 
 Socket Socket::createTcp() {
     int socketfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -25,55 +24,23 @@ bool Socket::setReuseAddr(bool on) {
     return ::setsockopt(this->_fd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
 }
 
-bool Socket::listen(int backlog) {
-    // Verificar que el socket sea válido y tenga un puerto
-    if (::listen(this->_fd, this->_port) != 0) {
-        // mostrar error
-        perror("listen");
-        return false;
-    }
+SendResult Socket::send(std::string message) {
+    SendResult result{};
 
-    std::cout << "Socket escuchando en: " << this->_ip << ":" << this->_port << std::endl;
+    result.bytes = ::send(this->fd(), message.c_str(), message.length(), 0);
+    
+    if(result.bytes < 0)
+        result.err = errno;
 
-    return true;
-};
-
-bool Socket::bind(u_int16_t port) {
-    return Socket::bind("0.0.0.0", port);
+    return result;
 }
 
-bool Socket::bind(const std::string& ip, u_int16_t port) {
-    sockaddr_in addr{}; //define la estructura de ipv4
-    addr.sin_family = AF_INET; 
-    addr.sin_port = htons(port); //le dice el puerto que se va a estar utilizando
-
-    inet_pton(AF_INET, ip.c_str(), &addr.sin_addr); //convierte la ip string en binario ipv4
-
-    int result = ::bind(_fd, (sockaddr*)&addr, sizeof(addr)); //
-
-    if (result == 0) {
-        // Guardar ip y puerto
-        this->_port = port;
-        this->_ip = ip;
-
-        std::cout << "Puerto bindeado " << port << " en la ip " << ip << std::endl;
-
-        return true;
-    }
-
-    return false;
-}
-
-bool Socket::send(Socket socket, std::string message) {
-    return ::send(socket.fd(), message.c_str(), message.length(), 0) == -1;
-}
-
-RecvResult Socket::recv(Socket socket) {
+RecvResult Socket::recv() {
     char buffer[1024];
     RecvResult result{};
 
     // Almacenamos los bytes enviados
-    result.bytes = ::recv(socket.fd(), buffer, sizeof(buffer) - 1, 0);
+    result.bytes = ::recv(this->fd(), buffer, sizeof(buffer) - 1, 0);
         
     // Si es menor a 0, es porque hubo un error
     if(result.bytes < 0) {

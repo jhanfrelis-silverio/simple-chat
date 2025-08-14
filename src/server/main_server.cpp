@@ -1,39 +1,53 @@
 #include <iostream>
-#include<sys/select.h>
-#include<sys/socket.h>
-#include<netinet/in.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include "server.hpp"
+#include "client.hpp"
 #include "socket.hpp"
 
 int main() {
-    Socket socket = Socket::createTcp(); // creamos el socket
+    Server server = Server("127.0.0.1", 5000);
+    server.start();
 
-    socket.bind(5000);  // conecta la ip con el puerto
-    socket.listen();  // se habilita el puerto para la comunicacion
+    sockaddr_in serverAddr = server.addr(), clientAddr;
+    socklen_t clientLength = sizeof(clientAddr);
 
-    /*fd_set master, readyFDs;
-    FD_ZERO(&master);
+    Client client = Client();
 
-    FD_SET(socket.fd()+1, &master);
-
-
+    client.connect(serverAddr);
     
-    while(true) {
-        readyFDs = master;
-        if(select(socket.fd(), &master, nullptr, nullptr, nullptr) < 0){
-            if(errno == EINTR) continue;
-            perror("select error");
-            break;
-        }
+    int acceptedFd = ::accept(server.fd(), (sockaddr*)&clientAddr, &clientLength);
+    if (acceptedFd < 0) {
+        perror("accept");
+        return 1;
     }
 
-    for(int i = 0;i<socket.fd(); i++){
-        if(FD_ISSET(i, &readyFDs)){
-            sockaddr_in client{};
-            socklen_t length = sizeof(client);
-            int cfd = accept(i, (sockaddr*)& cli, length);
-        }
+    Socket peer(acceptedFd);
 
-    }*/
+    std::cout << clientLength << std::endl;
+
+    if (client.send("hola").ok()) {
+        std::cout << "Mensaje enviado satisfactoriamente\n";
+    } else {
+        std::cout << "El mensaje no fue enviado correctamente\n";
+    }
+
+    RecvResult result = peer.recv();
+
+    if (result.ok()) {
+        std::cout << "Mensaje recibido desde el cliente.\n";
+        std::cout << "Mensaje: " << result.data << std::endl;
+    }
+
+    peer.send("Te habla el servidor");
+
+    RecvResult resultClient = client.receive();
+
+    if (resultClient.ok()) {
+        std::cout << "Mensaje recibido desde el cliente.\n";
+        std::cout << "Mensaje: " << resultClient.data << std::endl;
+    }
 
     return 0;
 }
