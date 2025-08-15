@@ -28,6 +28,7 @@ public:
 
     bool receive(Client& peer);
     bool send(Client& peer);
+    void broadcast(std::string message, Client& sender);
 
     void addClient(int fd, sockaddr_in addr);
     void removeClient(int fd);

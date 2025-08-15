@@ -11,20 +11,90 @@ int main() {
         std::cout << errno;
     }
 
+    int maxfd = std::max(client.fd(), STDIN_FILENO);
+
     while (true) {
-        std::string message;
+        fd_set readfds;
+        
+        FD_ZERO(&readfds);
+        FD_SET(client.fd(), &readfds);
+        FD_SET(STDIN_FILENO, &readfds);
+        
+        int readyfds = select(maxfd + 1, &readfds, NULL, NULL, NULL);
 
-        std::cout << "Escribe un mensaje: ";
-        getline(std::cin, message);
+        if (readyfds < 0) {
+            if (errno == EINTR)
+                continue;
+            perror("select");
+            break;
+        }
 
-        client.send(message + '\n');
+        // Verificamos si llegó algo del servidor
+        if (FD_ISSET(client.fd(), &readfds)) {
+            RecvResult result = client.receive();
 
-        RecvResult result = client.receive();
+            if (result.closed()) {
+                std::cout << "El servidor cerró la conexión";
+                break;
+            }
 
-        if (result.ok()) {
-            std::cout << result.data << std::endl;
-        } else if (result.fail()) {
-            std::cout << "Ocurrió un error al recibir el mensaje\n";
+            if (result.ok()) {
+                std::cout << result.data << std::endl;
+            } else if (result.fail()) {
+                std::cout << "Ocurrió un error al recibir el mensaje\n";
+            }
+        }
+    }
+
+    int maxfd = std::max(client.fd(), STDIN_FILENO);
+
+    while (true) {
+        fd_set readfds;
+        
+        FD_ZERO(&readfds);
+        FD_SET(client.fd(), &readfds);
+        FD_SET(STDIN_FILENO, &readfds);
+        
+        int readyfds = select(maxfd + 1, &readfds, NULL, NULL, NULL);
+
+        if (readyfds < 0) {
+            if (errno == EINTR)
+                continue;
+            perror("select");
+            break;
+        }
+
+        // Verificamos si llegó algo del servidor
+        if (FD_ISSET(client.fd(), &readfds)) {
+            RecvResult result = client.receive();
+
+            if (result.closed()) {
+                std::cout << "El servidor cerró la conexión";
+                break;
+            }
+            
+            if (result.fail()) {
+                perror("recv");
+                break;
+            }
+
+            std::cout << "Servidor >> " << result.data << std::flush;
+        }
+
+        if (FD_ISSET(STDIN_FILENO, &readfds)) {
+            std::string line;
+
+            if (!std::getline(std::cin, line)) { // EOF o error en stdin
+                break;
+            }
+
+            line.push_back('\n');
+            SendResult result = client.send(line);
+
+            if (result.fail()) {
+                perror("send");
+                break; 
+            }
         }
     }
 

@@ -151,11 +151,7 @@ bool Server::receive(Client& peer) {
         // Actualizamos la posición de start
         start = endline + 1;
 
-        // Se guarda el mensaje por enviar...
-        peer.outBuffer.append("Mensaje: " + line);
-
-        // Añadimos el fd actual a los writesfd.
-        FD_SET(peer.fd(), &_masterWrite);
+        broadcast(line, peer);
     }
 
     if (start > 0) {
@@ -191,6 +187,15 @@ bool Server::send(Client& peer) {
 
     perror("send");
     return false;
+}
+
+void Server::broadcast(std::string message, Client& sender) {
+    for (auto &peer : _peers) {
+        if (peer.fd() == sender.fd())
+            continue;
+        peer.outBuffer.append(message);
+        FD_SET(peer.fd(), &_masterWrite);
+    }
 }
 
 void Server::addClient(int cfd, sockaddr_in addr) {
