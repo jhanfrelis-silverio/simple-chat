@@ -31,7 +31,7 @@ bool Server::run() {
         fd_set writefds = _masterWrite;
 
         // Solo queremos leer, por lo tanto solo colocamos el parámetro de leer.
-        int readyfds = select(_maxfd, &readfds, &writefds, NULL, NULL);
+        int readyfds = select(_maxfd + 1, &readfds, &writefds, NULL, NULL);
 
         if (readyfds < 0) {
             if (errno == EINTR) // EINTR -> INTERRUPTED
@@ -113,51 +113,59 @@ bool Server::receive(Client& peer) {
     // Recibimos la información del peer en específico
     RecvResult result = peer.receive();
 
-    if (result.ok()) {
-        // Vamos guardando lo que vamos recibiendo
-        peer.inBuffer.append(result.data, result.data.length());
-
-        // Comprobamos si hay un salto de línea
-        size_t start = 0;
-        
-        while (true) {
-            size_t endline = peer.inBuffer.find("\n");
-        
-            // Verificamos si no fue encontrado el salto de línea: los datos están incompletos.
-            if (endline == std::string::npos) {
-                // Si ya hemos guardado algo, lo eliminamos para que solo quede
-                // la parte sin procesar 
-                if (start > 0) {
-                    peer.inBuffer.erase(0, start);
-                }
-
-                break;
-            }
-
-            // Obtenemos la línea
-            std::string line = peer.inBuffer.substr(start, endline - start + 1);
-
-            // Actualizamos la posición de start
-            start = endline + 1;
-
-            // Se guarda el mensaje por enviar...
-            peer.outBuffer.append("Mensaje: " + line);
-
-            // Añadimos el fd actual a los writesfd.
-            FD_SET(peer.fd(), &_masterWrite);
-        }
-
-        return true;
-    } 
-    
     // Si hay un fallo, verificamos si es un error en específico para seguir intentándolo
+    if (result.closed()) {
+        return false;
+    }
+
     if (result.fail()) {
         if (result.err == EAGAIN || result.err == EWOULDBLOCK ) // Seguir intentándolo
             return true;
         perror("recv");
+        return false;
     }
 
-    return false;
+    // Vamos guardando lo que vamos recibiendo
+    peer.inBuffer.append(result.data);
+
+    // Comprobamos si hay un salto de línea
+    size_t start = 0;
+    
+    while (true) {
+        size_t endline = peer.inBuffer.find('\n', start);
+
+        // Verificamos si no fue encontrado el salto de línea: los datos están incompletos.
+        if (endline == std::string::npos) {
+            // Si ya hemos guardado algo, lo eliminamos para que solo quede
+            // la parte sin procesar 
+            if (start > 0) {
+                peer.inBuffer.erase(0, start);
+            }
+
+            break;
+        }
+
+        // Obtenemos la línea
+        std::string line = peer.inBuffer.substr(start, endline - start + 1);
+        
+        // Actualizamos la posición de start
+        start = endline + 1;
+
+        // Se guarda el mensaje por enviar...
+        peer.outBuffer.append("Mensaje: " + line);
+
+        // Añadimos el fd actual a los writesfd.
+        FD_SET(peer.fd(), &_masterWrite);
+    }
+
+    if (start > 0) {
+        if (start < peer.inBuffer.size()) 
+            peer.inBuffer.erase(0, start);
+        else 
+            peer.inBuffer.clear();
+    }
+
+    return true;
 }
 
 bool Server::send(Client& peer) {

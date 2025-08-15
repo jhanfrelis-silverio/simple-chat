@@ -11,5 +11,22 @@ int main() {
         std::cout << errno;
     }
 
+    while (true) {
+        std::string message;
+
+        std::cout << "Escribe un mensaje: ";
+        getline(std::cin, message);
+
+        client.send(message + '\n');
+
+        RecvResult result = client.receive();
+
+        if (result.ok()) {
+            std::cout << result.data << std::endl;
+        } else if (result.fail()) {
+            std::cout << "Ocurrió un error al recibir el mensaje\n";
+        }
+    }
+
     return 0;
 }
