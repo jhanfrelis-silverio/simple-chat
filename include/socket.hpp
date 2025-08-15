@@ -17,7 +17,7 @@ struct SendResult {
     int err = 0;
     bool ok() const { return bytes > 0; }
     bool fail() const { return bytes < 0; }
-    bool busy() const { return bytes == -1 && (errno == EAGAIN || errno == EWOULDBLOCK); }
+    bool tryagain() const { return bytes == -1 && (errno == EAGAIN || errno == EWOULDBLOCK); }
 };
 
 class Socket {
@@ -38,9 +38,18 @@ public:
     Socket(const Socket& ) = delete;
     Socket& operator=(const Socket&) = delete;
 
-    // Evita que al momento de mover un socket a otro, toma el valor del socket y le quita el valor del
-    // _fd al objeto original
+    // Evita que al momento de mover un socket a otro se duplique el fd
+    // Toma el valor del socket y le quita el valor del _fd al objeto original
     Socket(Socket&& socket) noexcept : _fd(socket._fd) { socket._fd = -1; }
+
+    Socket& operator=(Socket&& other) noexcept {
+        if (this != &other) {
+            if (_fd >= 0) ::close(_fd); // cerramos el actual que poseemos
+            _fd = other._fd;            // adoptamos el del otro
+            other._fd = -1;             // el otro ya no es dueño
+        }
+        return *this;
+    }
 
     int fd() const { return _fd; } // función para obtener el _fd del socket
     int valid() const { return _fd >= 0; } // si el fd es menor a 0, el socket es inválido
@@ -51,4 +60,5 @@ public:
 
     SendResult send(std::string message);
     RecvResult recv();
+    void close();
 };

@@ -1,29 +1,35 @@
 #pragma once
 #include "socket.hpp"
 #include "client.hpp"
+#include <vector>
 
 class Server {
 private:
+    fd_set _masterRead, _masterWrite;
     Socket _socket = Socket::createTcp();
-    std::string _ip;
-    int _port = -1, _backlog;
     sockaddr_in _addr{};
+    std::string _ip;
+    int _port = -1, 
+        _backlog, // backlog significa la máxima cantidad de conexiones que pueden estar en cola
+        _maxfd;
+
+    std::vector<Client> _peers;
 public:
-    Server(const std::string& ip, u_int16_t port, int backlog = 128) {
-        this->_ip = ip;
-        this->_port = port;
-        this->_backlog = backlog;
+    Server(const std::string& ip, u_int16_t port, int backlog = 128) :
+        _ip(ip), _port(port), _backlog(backlog) { }
 
-        // Inicialización del select
-    }
-
-    int fd() { return _socket.fd(); } // testing
+    int fd() { return _socket.fd(); }
     const sockaddr_in addr() { return this->_addr; }
 
     bool bind();
-    bool listen(); // baog significa la máxima cantidad de conexiones que pueden estar en cola
+    bool listen();
     bool start();
+    bool run();
 
-    bool receive(Client& client);
-    bool send(Client& client);
+    bool receive(Client& peer);
+    bool send(Client& peer);
+
+    void addClient(int fd, sockaddr_in addr);
+    void removeClient(int fd);
+    void calculateMaxFd();
 };

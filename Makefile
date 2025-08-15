@@ -19,7 +19,7 @@ COMMON_OBJS := $(BUILD)/protocol.o \
 
 # === Objetos específicos ===
 # hay que remover el $build/client.o de server_objs -> estoy testeando !
-SERVER_OBJS := $(COMMON_OBJS) $(BUILD)/server.o $(BUILD)/main_server.o $(BUILD)/client.o
+SERVER_OBJS := $(COMMON_OBJS) $(BUILD)/server.o $(BUILD)/main_server.o
 CLIENT_OBJS := $(COMMON_OBJS) $(BUILD)/client.o $(BUILD)/main_client.o
 
 # === Regla por defecto ===

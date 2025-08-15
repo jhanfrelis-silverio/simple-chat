@@ -36,7 +36,7 @@ SendResult Socket::send(std::string message) {
 }
 
 RecvResult Socket::recv() {
-    char buffer[1024];
+    char buffer[4096];
     RecvResult result{};
 
     // Almacenamos los bytes enviados
@@ -60,4 +60,8 @@ RecvResult Socket::recv() {
     );
 
     return result;
+}
+
+void Socket::close() {
+    this->~Socket();
 }
