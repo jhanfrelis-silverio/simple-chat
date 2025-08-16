@@ -8,6 +8,7 @@ SRC := src
 COMMON := $(SRC)/common
 SERVER := $(SRC)/server
 CLIENT := $(SRC)/client
+UTILS := $(SRC)/utils
 
 SERVER_BIN := $(BUILD)/server
 CLIENT_BIN := $(BUILD)/client
@@ -17,10 +18,13 @@ COMMON_OBJS := $(BUILD)/protocol.o \
                $(BUILD)/net.o \
                $(BUILD)/socket.o
 
+UTILS_OBJS := $(BUILD)/functions.o \
+			  $(BUILD)/terminal.o
+
 # === Objetos específicos ===
 # hay que remover el $build/client.o de server_objs -> estoy testeando !
-SERVER_OBJS := $(COMMON_OBJS) $(BUILD)/server.o $(BUILD)/main_server.o
-CLIENT_OBJS := $(COMMON_OBJS) $(BUILD)/client.o $(BUILD)/main_client.o
+SERVER_OBJS := $(UTILS_OBJS) $(COMMON_OBJS) $(BUILD)/server.o $(BUILD)/main_server.o
+CLIENT_OBJS := $(UTILS_OBJS) $(COMMON_OBJS) $(BUILD)/client.o $(BUILD)/main_client.o
 
 # === Regla por defecto ===
 all: $(SERVER_BIN) $(CLIENT_BIN)
@@ -28,6 +32,13 @@ all: $(SERVER_BIN) $(CLIENT_BIN)
 # === Crear directorio build ===
 $(BUILD):
 	mkdir -p $(BUILD)
+
+# === Compilación de objetos comunes ===
+$(BUILD)/functions.o: $(UTILS)/functions.cpp include/functions.hpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(BUILD)/terminal.o: $(UTILS)/terminal.cpp include/terminal.hpp include/json.hpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # === Compilación de objetos comunes ===
 $(BUILD)/socket.o: $(COMMON)/socket.cpp include/socket.hpp | $(BUILD)
